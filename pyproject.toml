@@ -1,0 +1,18 @@
+[project]
+name = "final-rag-be"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.42.18",
+    "celery>=5.6.1",
+    "django>=5.2.9",
+    "django-environ>=0.12.0",
+    "djangorestframework>=3.16.1",
+    "langchain>=1.2.0",
+    "openai>=2.14.0",
+    "psycopg2-binary>=2.9.11",
+    "redis>=7.1.0",
+    "weaviate-client>=4.19.0",
+]
