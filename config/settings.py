@@ -32,9 +32,12 @@ SECRET_KEY = env("SECRET_KEY")
 
 CELERY_BROKER_URL = env("REDIS_URL")
 
-ALLOWED_HOSTS = []
-CELERY_BROKER_URL = "redis://localhost:6379/0"
+ALLOWED_HOSTS = ['*']
+CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -56,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'corsheaders',
     'chat',
     'users',
     'documents',
@@ -63,6 +67,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
