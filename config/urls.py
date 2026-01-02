@@ -17,9 +17,11 @@ from django.contrib import admin
 from django.urls import path
 from documents.api import UploadDocument
 from chat.api import ChatView
+from rest_framework_simplejwt.views import TokenObtainPairView
 urlpatterns = [
     path('admin/', admin.site.urls),
-     path("api/upload", UploadDocument.as_view()),
+    path("api/token", TokenObtainPairView.as_view()),
+    path("api/upload", UploadDocument.as_view()),
     path("api/chat/<int:session_id>", ChatView.as_view()),
 ]
 
