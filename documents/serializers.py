@@ -3,10 +3,11 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from documents.tasks import process_document
-from rag_engine.mongodb_client import MongoDBClient
+from rag_engine.weviate_client import WeaviateClient
 
 
 DEFAULT_ALLOWED_MIME_TYPES = getattr(
@@ -50,16 +51,17 @@ class DocumentUploadSerializer(serializers.Serializer):
         saved_name = storage.save(stored_name, upload)
         file_path = storage.path(saved_name)
 
-        document_id = uuid4().hex
-        client = MongoDBClient()
-        client.create_document(
-            doc_id=document_id,
-            user_id=request.user.id,
-            filename=upload.name,
-            bucket=DEFAULT_STORAGE_BUCKET,
-            processed=False,
-            text="",
-        )
+        document_id = str(uuid4())
+        with WeaviateClient() as client:
+
+            client.create_document(
+                doc_id=document_id,
+                user_id=request.user.id,
+                filename=upload.name,
+                bucket=DEFAULT_STORAGE_BUCKET,
+                processed=False,
+                text="",
+            )
 
         process_document.delay(
             doc_id=document_id,
