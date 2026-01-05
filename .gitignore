@@ -11,3 +11,8 @@ wheels/
 .env
 .idea
 docs
+.vscode
+.idea
+.pytest_cache/
+.coverage
+media/deocuments/*

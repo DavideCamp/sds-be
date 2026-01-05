@@ -1,26 +1,23 @@
 
 from celery import shared_task
-from .models import Document
-from rag_engine.weaviate_client import WeaviateClient
+from rag_engine.mongodb_client import MongoDBClient
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=30, retry_kwargs={"max_retries": 5})
-def process_document(self, doc_id):
-    doc = Document.objects.get(id=doc_id)
-    
-    db_client = WeaviateClient()
-
-    text = doc.file.read().decode("utf-8")
-
+def process_document(self, doc_id, user_id, file_path, bucket="local", filename=None):
+    db_client = MongoDBClient()
+    with open(file_path, "rb") as file_handle:
+        text = file_handle.read().decode("utf-8")
     chunks = db_client.chunk_text(text)
-
     for chunk in chunks:
-        db_client.store_chunk(chunk, doc.id, doc.owner.id)
+        db_client.store_chunk(chunk, doc_id, user_id)
+    db_client.update_document(
+        doc_id,
+        {
+            "text": text,
+            "processed": True,
+            "bucket": bucket,
+            "filename": filename or "",
+        },
+    )
+    return {"doc_id": doc_id, "processed": True}
 
-    doc.processed = True
-    doc.save()
-
-
-
-@shared_task
-def add(x, y):
-    return x + y

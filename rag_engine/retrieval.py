@@ -1,4 +1,4 @@
-from rag_engine.weaviate_client import WeaviateClient
+from rag_engine.mongodb_client import MongoDBClient
 def retrieve_chunks(query, user):
     # per ora stub
     return ["Example company policy text"]
@@ -6,12 +6,5 @@ def retrieve_chunks(query, user):
 
 
 def hybrid_search(query, user_id):
-    return WeaviateClient().query.get("Chunk", ["text"]) \
-        .with_where({
-            "path": ["user_id"],
-            "operator": "Equal",
-            "valueInt": user_id
-        }) \
-        .with_hybrid(query=query, alpha=0.5) \
-        .with_limit(5) \
-        .do()
+    client = MongoDBClient()
+    return client.find_chunks_by_user(user_id, limit=5)
