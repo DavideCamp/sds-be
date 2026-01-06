@@ -5,7 +5,7 @@ from uuid import uuid4, UUID
 import weaviate
 from weaviate.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.filters import Filter
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .embeddings import embed
 
 env = os.environ
@@ -64,13 +64,12 @@ class WeaviateClient:
 
     @staticmethod
     def chunk_text(text: str, size=800, overlap=150) -> list[str]:
-        chunks = []
-        start = 0
-        while start < len(text):
-            end = start + size
-            chunks.append(text[start:end])
-            start = end - overlap
-        return chunks
+
+        return RecursiveCharacterTextSplitter(
+            chunk_size=size,
+            overlap=overlap,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        ).split_text(text)
 
     def create_document(self, doc_id: str, user_id: int, filename: str, bucket: str, processed: bool, text: str) -> None:
         properties = {

@@ -1,0 +1,73 @@
+Django Authentication and Authorization Guide
+
+Introduction to Django Auth System
+
+Django comes with a built-in authentication system that handles user accounts, groups, permissions, and cookie-based user sessions. The authentication system is located in django.contrib.auth.
+
+Setting Up Authentication
+
+To use Django's authentication system, you need to ensure these items are in your INSTALLED_APPS setting:
+- django.contrib.auth (contains the core authentication framework)
+- django.contrib.contenttypes (needed for permissions)
+
+The authentication system also requires these middleware classes:
+- SessionMiddleware (manages sessions across requests)
+- AuthenticationMiddleware (associates users with requests)
+
+User Model
+
+Django provides a default User model with these fields:
+- username: Required. 150 characters or fewer.
+- password: Required. Hash of the password.
+- email: Optional. Email address.
+- first_name: Optional. 30 characters or fewer.
+- last_name: Optional. 150 characters or fewer.
+
+Creating Users
+
+You can create users programmatically:
+
+from django.contrib.auth.models import User
+
+user = User.objects.create_user('john', 'john@example.com', 'password123')
+user.first_name = 'John'
+user.last_name = 'Doe'
+user.save()
+
+Login and Logout
+
+Django provides views for handling login and logout. In your urls.py:
+
+from django.contrib.auth import views as auth_views
+
+urlpatterns = [
+    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+]
+
+Password Management
+
+Django includes views for password change and reset:
+- PasswordChangeView: Allows users to change their password
+- PasswordResetView: Sends password reset email
+- PasswordResetConfirmView: Handles password reset confirmation
+
+Permissions and Groups
+
+Django's permission system provides a way to assign permissions to specific users and groups. Every model automatically gets create, read, update, and delete permissions.
+
+You can check permissions in views:
+if request.user.has_perm('app.add_model'):
+    # User has permission
+    pass
+
+Custom Authentication Backends
+
+You can customize the authentication process by creating a custom backend. Set it in settings.py:
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'myapp.backends.CustomBackend',
+]
+
+This allows you to authenticate users against different systems or add custom authentication logic.

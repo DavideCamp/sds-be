@@ -23,5 +23,6 @@ urlpatterns = [
     path("api/token", TokenObtainPairView.as_view()),
     path("api/upload", UploadDocument.as_view()),
     path("api/chat/<int:session_id>", ChatView.as_view()),
+    path("api/chat/", ChatView.as_view()),
 ]
 

@@ -1,0 +1,165 @@
+Django Performance Optimization Techniques
+
+Database Query Optimization
+
+Use select_related for Foreign Keys
+
+select_related() performs a SQL join and includes related object data in a single query:
+
+# Bad - causes N+1 queries
+books = Book.objects.all()
+for book in books:
+    print(book.author.name)  # Separate query for each book
+
+# Good - single query with join
+books = Book.objects.select_related('author').all()
+for book in books:
+    print(book.author.name)
+
+Use prefetch_related for Many-to-Many
+
+prefetch_related() performs separate queries but does the joining in Python:
+
+# Bad
+authors = Author.objects.all()
+for author in authors:
+    for book in author.books.all():  # Query for each author
+        print(book.title)
+
+# Good
+authors = Author.objects.prefetch_related('books').all()
+for author in authors:
+    for book in author.books.all():
+        print(book.title)
+
+Database Indexing
+
+Add indexes to frequently queried fields:
+
+class Article(models.Model):
+    title = models.CharField(max_length=200, db_index=True)
+    created_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['title', 'created_at']),
+            models.Index(fields=['-created_at']),
+        ]
+
+Query Optimization
+
+Use only() and defer() to limit fields:
+
+# Only fetch specific fields
+users = User.objects.only('id', 'username')
+
+# Defer loading of large fields
+articles = Article.objects.defer('content', 'metadata')
+
+Use values() and values_list() for dictionaries:
+
+# Returns list of dictionaries
+users = User.objects.values('id', 'username')
+
+# Returns list of tuples
+user_ids = User.objects.values_list('id', flat=True)
+
+Caching Strategies
+
+Django supports multiple cache backends:
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'myapp',
+        'TIMEOUT': 300,
+    }
+}
+
+Per-View Caching
+
+from django.views.decorators.cache import cache_page
+
+@cache_page(60 * 15)  # Cache for 15 minutes
+def my_view(request):
+    # Expensive operations
+    return render(request, 'template.html')
+
+Template Fragment Caching
+
+{% load cache %}
+{% cache 500 sidebar %}
+    <!-- Expensive sidebar rendering -->
+{% endcache %}
+
+Low-Level Cache API
+
+from django.core.cache import cache
+
+# Set cache
+cache.set('my_key', 'my_value', 300)
+
+# Get cache
+value = cache.get('my_key')
+
+# Delete cache
+cache.delete('my_key')
+
+Static Files Optimization
+
+Use WhiteNoise for static files in production:
+
+pip install whitenoise
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    # ...
+]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+Enable compression and caching:
+
+WHITENOISE_COMPRESS_OFFLINE = True
+WHITENOISE_MANIFEST_STRICT = False
+
+Async Views and Database Operations
+
+Django 4.1+ supports async views and database queries:
+
+from django.http import JsonResponse
+import asyncio
+
+async def my_async_view(request):
+    # Async database query
+    users = await User.objects.filter(is_active=True).acount()
+
+    # Concurrent operations
+    results = await asyncio.gather(
+        fetch_data_from_api(),
+        process_background_task(),
+    )
+
+    return JsonResponse({'count': users})
+
+Middleware Optimization
+
+Remove unnecessary middleware and order them correctly. Put lightweight middleware first.
+
+Connection Pooling
+
+Use persistent database connections:
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'CONN_MAX_AGE': 600,  # Keep connections for 10 minutes
+    }
+}
+
+Use Persistent Connections with pgBouncer for PostgreSQL.

@@ -1,6 +1,6 @@
 
 from celery import shared_task
-from rag_engine.weviate_client import WeaviateClient
+from rag_engine.weaviate_client import WeaviateClient
 
 
 
