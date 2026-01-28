@@ -3,11 +3,10 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from documents.tasks import process_document
-from rag_engine.weviate_client import WeaviateClient
+from rag_engine.weaviate_client import WeaviateClient
 
 
 DEFAULT_ALLOWED_MIME_TYPES = getattr(

@@ -1,0 +1,223 @@
+Django Security Best Practices and Configuration
+
+Security Settings
+
+Essential Security Settings in settings.py
+
+# HTTPS Settings
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# HSTS (HTTP Strict Transport Security)
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Cookie Security
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_SAMESITE = 'Strict'
+
+# Content Security
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
+Secret Key Management
+
+Never hardcode SECRET_KEY in settings.py. Use environment variables:
+
+import os
+from pathlib import Path
+
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY environment variable not set")
+
+Generate strong secret keys:
+
+from django.core.management.utils import get_random_secret_key
+print(get_random_secret_key())
+
+Database Security
+
+Use parameterized queries (Django ORM does this automatically):
+
+# Safe - parameterized
+User.objects.filter(username=user_input)
+
+# Dangerous - SQL injection risk
+User.objects.raw(f"SELECT * FROM users WHERE username='{user_input}'")
+
+Encrypt sensitive data at rest:
+
+from django.contrib.postgres.fields import CICharField
+from encrypted_model_fields.fields import EncryptedCharField
+
+class UserProfile(models.Model):
+    ssn = EncryptedCharField(max_length=11)
+    credit_card = EncryptedCharField(max_length=16)
+
+Password Security
+
+Configure password validators:
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 12,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+Use Argon2 for password hashing:
+
+pip install django[argon2]
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+]
+
+CSRF Protection
+
+Django's CSRF protection is enabled by default. Ensure you:
+
+1. Include {% csrf_token %} in all forms
+2. Use @csrf_protect decorator for function views
+3. Configure CSRF_TRUSTED_ORIGINS for cross-domain requests:
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://example.com',
+    'https://subdomain.example.com',
+]
+
+XSS Prevention
+
+Django templates auto-escape by default. Be careful with:
+
+# Safe
+{{ user_input }}
+
+# Dangerous - disables escaping
+{{ user_input|safe }}
+
+# Use format_html for mixing HTML and variables
+from django.utils.html import format_html
+output = format_html('<a href="{}">{}</a>', url, text)
+
+Clickjacking Protection
+
+X_FRAME_OPTIONS = 'DENY'  # Never allow framing
+
+# Or allow only same origin
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Or specify allowed domains
+from django.middleware.clickjacking import XFrameOptionsMiddleware
+
+Rate Limiting and DDoS Protection
+
+Install django-ratelimit:
+
+pip install django-ratelimit
+
+from django_ratelimit.decorators import ratelimit
+
+@ratelimit(key='ip', rate='5/m', method='POST')
+def login_view(request):
+    # Login logic
+    pass
+
+Use django-axes for login attempt tracking:
+
+pip install django-axes
+
+INSTALLED_APPS = [
+    'axes',
+    # ...
+]
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AXES_FAILURE_LIMIT = 5
+AXES_LOCK_OUT_AT_FAILURE = True
+AXES_COOLOFF_TIME = 1  # Hours
+
+File Upload Security
+
+Limit file upload size:
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880
+
+Validate file types:
+
+from django.core.exceptions import ValidationError
+
+def validate_file_extension(value):
+    valid_extensions = ['.pdf', '.doc', '.docx']
+    if not any(value.name.endswith(ext) for ext in valid_extensions):
+        raise ValidationError('Unsupported file extension.')
+
+class Document(models.Model):
+    file = models.FileField(
+        upload_to='documents/',
+        validators=[validate_file_extension]
+    )
+
+Security Headers with django-csp
+
+pip install django-csp
+
+MIDDLEWARE = [
+    'csp.middleware.CSPMiddleware',
+    # ...
+]
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://cdn.example.com")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+
+Logging and Monitoring
+
+Configure security logging:
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'security_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'logs/security.log',
+        },
+    },
+    'loggers': {
+        'django.security': {
+            'handlers': ['security_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+Monitor for security events and set up alerts for suspicious activity.
